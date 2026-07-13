@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1920" height="5470" viewBox="0 0 1920 5470">
+  <defs>
+    <clipPath id="clip-path">
+      <rect id="Rectangle_3" data-name="Rectangle 3" width="156.664" height="328.024" fill="none"/>
+    </clipPath>
+    <clipPath id="clip-RIFF_2025_Home_-_Number_1">
+      <rect width="1920" height="5470"/>
+    </clipPath>
+  </defs>
+  <g id="RIFF_2025_Home_-_Number_1" data-name="RIFF 2025 Home - Number 1" clip-path="url(#clip-RIFF_2025_Home_-_Number_1)">
+    <rect width="1920" height="5470" fill="#fff"/>
+    <g id="Number_1" data-name="Number 1" transform="translate(413 534)">
+      <g id="Group_6" data-name="Group 6" clip-path="url(#clip-path)">
+        <g id="Group_5" data-name="Group 5">
+          <g id="Group_4" data-name="Group 4" clip-path="url(#clip-path)">
+            <g id="Group_3" data-name="Group 3" opacity="0.1">
+              <g id="Group_2" data-name="Group 2">
+                <g id="Group_1" data-name="Group 1" clip-path="url(#clip-path)">
+                  <path id="Path_1" data-name="Path 1" d="M0,55.158V45.634C68.452,35.558,111.593,0,111.593,0V300.5c0,21.058,45.071,18,45.071,18v9.524H0V318.5s53.076,5.058,53.076-18V47.111Z" fill="none"/>
+                </g>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

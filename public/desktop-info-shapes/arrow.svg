@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1920" height="5470" viewBox="0 0 1920 5470">
+  <defs>
+    <clipPath id="clip-RIFF_Website_-_Arrow">
+      <rect width="1920" height="5470"/>
+    </clipPath>
+  </defs>
+  <g id="RIFF_Website_-_Arrow" data-name="RIFF Website - Arrow" clip-path="url(#clip-RIFF_Website_-_Arrow)">
+    <rect width="1920" height="5470" fill="#fff"/>
+    <path id="Path_5" data-name="Path 5" d="M7805.326-1728.011s77.974-38.142,0-83.069" transform="translate(-6205 2862.5)" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="3"/>
+    <line id="Line_1" data-name="Line 1" x1="10" y1="25" transform="translate(1600.5 1051)" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="3"/>
+    <line id="Line_2" data-name="Line 2" x1="25" y1="2" transform="translate(1600.5 1051)" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="3"/>
+  </g>
+</svg>
