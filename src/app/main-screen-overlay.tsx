@@ -268,6 +268,30 @@ export function MainScreenOverlay({ regions }: { regions: Region[] }) {
     requestAnimationFrame(() => setSlidIn(true));
   }
 
+  // Warm the HTTP + decoded-image cache for every shape (and the success image)
+  // once the browser is idle after first paint. By the time a region is
+  // clicked the PNG is already fetched AND decoded, so the fade/slide runs on a
+  // ready bitmap instead of stuttering while the image downloads/decodes.
+  useEffect(() => {
+    const files = [
+      ...new Set(Object.values(SHAPE_BY_INDEX).map((c) => c.file)),
+      "submit-succes",
+    ];
+    const run = () => {
+      for (const file of files) {
+        const img = new window.Image();
+        img.src = `/desktop-info-shapes/${file}.webp`;
+        void img.decode?.().catch(() => {});
+      }
+    };
+    const hasRIC = typeof window.requestIdleCallback === "function";
+    const id = hasRIC ? window.requestIdleCallback(run) : window.setTimeout(run, 1200);
+    return () => {
+      if (hasRIC) window.cancelIdleCallback(id as number);
+      else window.clearTimeout(id as number);
+    };
+  }, []);
+
   // Auto-close the success screen after 5 seconds.
   useEffect(() => {
     if (!submitted) return;
@@ -279,13 +303,15 @@ export function MainScreenOverlay({ regions }: { regions: Region[] }) {
     setClosing(true);
   }
 
-  // Full-page Privacy Policy overlay (privacy.png), opened from the hotspot over
+  // Full-page Privacy Policy overlay (privacy.avif), opened from the hotspot over
   // the "Privacy Policy" text at the bottom of the page. Fades in/out.
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [privacyVisible, setPrivacyVisible] = useState(false);
 
   function openPrivacy() {
     setPrivacyOpen(true);
+    // Smoothly return to the top so the document opens from its start.
+    window.scrollTo({ top: 0, behavior: "smooth" });
     requestAnimationFrame(() => setPrivacyVisible(true));
   }
 
@@ -477,6 +503,9 @@ export function MainScreenOverlay({ regions }: { regions: Region[] }) {
           // in over 1s (transform); fade-in (shape-2/4) and every fade-out on
           // close animate opacity over 0.2s.
           transition: "transform 1s ease-out, opacity 0.2s ease-in",
+          // Promote to its own compositor layer so the slide/fade stays on the
+          // GPU and doesn't repaint the huge PNG each frame.
+          willChange: "transform, opacity",
         }}
         onTransitionEnd={(e) => {
           if (closing && e.propertyName === "opacity") {
@@ -495,7 +524,7 @@ export function MainScreenOverlay({ regions }: { regions: Region[] }) {
           />
         )}
         <Image
-          src={`/desktop-info-shapes/${submitted ? "submit-succes" : active.file}.png`}
+          src={`/desktop-info-shapes/${submitted ? "submit-succes" : active.file}.webp`}
           alt=""
           width={4000}
           height={11396}
@@ -585,7 +614,7 @@ export function MainScreenOverlay({ regions }: { regions: Region[] }) {
       className="pointer-events-auto absolute z-20 cursor-pointer"
     />
 
-    {/* Full-page Privacy Policy overlay: privacy.png backing shape + the text
+    {/* Full-page Privacy Policy overlay: privacy.avif backing shape + the text
         rendered on top + a close arrow near the bottom (fades in/out). */}
     {privacyOpen && (
       <div
@@ -596,7 +625,7 @@ export function MainScreenOverlay({ regions }: { regions: Region[] }) {
         }}
       >
         <Image
-          src="/desktop-info-shapes/privacy.png"
+          src="/desktop-info-shapes/privacy.avif"
           alt=""
           width={8000}
           height={22792}

@@ -76,7 +76,7 @@ export default function Home() {
         />
         <div className="relative w-full overflow-hidden">
           <Image
-            src="/desktop-info-shapes/main-background.png"
+            src="/desktop-info-shapes/main-background.webp"
             alt=""
             width={8000}
             height={22792}
@@ -93,7 +93,7 @@ export default function Home() {
         <MobileLogo />
         <div className="relative w-full">
           <Image
-            src="/background-mobile.png"
+            src="/background-mobile.webp"
             alt=""
             width={3125}
             height={9625}

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export type MobileRegion = {
   id: string;
@@ -46,10 +46,29 @@ export function MobileScreenOverlay({ regions }: { regions: MobileRegion[] }) {
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [privacyVisible, setPrivacyVisible] = useState(false);
 
+  // Preload + decode every tap-target shape once the browser is idle, so the
+  // fade-in runs on a ready bitmap instead of stuttering on first tap.
+  useEffect(() => {
+    const files = [...new Set(Object.values(SHAPE_BY_NUMBER))];
+    const run = () => {
+      for (const file of files) {
+        const img = new window.Image();
+        img.src = `/mobile-info-shapes/${file}.webp`;
+        void img.decode?.().catch(() => {});
+      }
+    };
+    const hasRIC = typeof window.requestIdleCallback === "function";
+    const id = hasRIC ? window.requestIdleCallback(run) : window.setTimeout(run, 1200);
+    return () => {
+      if (hasRIC) window.cancelIdleCallback(id as number);
+      else window.clearTimeout(id as number);
+    };
+  }, []);
+
   function openPrivacy() {
     setPrivacyOpen(true);
-    // Show the document from its top regardless of current scroll.
-    window.scrollTo({ top: 0 });
+    // Smoothly return to the top so the document opens from its start.
+    window.scrollTo({ top: 0, behavior: "smooth" });
     requestAnimationFrame(() => setPrivacyVisible(true));
   }
 
@@ -76,7 +95,7 @@ export function MobileScreenOverlay({ regions }: { regions: MobileRegion[] }) {
     <>
       {shape !== null && (
         <Image
-          src={`/mobile-info-shapes/${shape}.png`}
+          src={`/mobile-info-shapes/${shape}.webp`}
           alt=""
           width={3125}
           height={9625}
@@ -146,7 +165,7 @@ export function MobileScreenOverlay({ regions }: { regions: MobileRegion[] }) {
           }}
         >
           <Image
-            src="/mobile-info-shapes/privacy.png"
+            src="/mobile-info-shapes/privacy.webp"
             alt="Privacy Policy"
             width={3125}
             height={40532}
