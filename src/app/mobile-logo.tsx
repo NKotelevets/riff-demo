@@ -49,7 +49,7 @@ export function MobileLogo() {
         height={373}
         unoptimized
         aria-hidden={!visible}
-        className={`pointer-events-none absolute top-[30px] right-[130px]  z-10 h-auto w-full transition-opacity duration-500 ease-in-out ${
+        className={`pointer-events-none absolute top-[18px] right-[130px] z-10 h-[60px] w-auto transition-opacity duration-500 ease-in-out ${
           visible ? "opacity-100" : "opacity-0"
         }`}
       />
