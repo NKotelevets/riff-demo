@@ -124,6 +124,8 @@ export function ApplyForm({ onSuccess }: { onSuccess?: () => void }) {
   const [fileName, setFileName] = useState<string | null>(null);
   // Names of required fields left empty after blur — drives the inline hint.
   const [emptyErrors, setEmptyErrors] = useState<Record<string, boolean>>({});
+  // Hovering the upload button swaps its label to a format hint.
+  const [uploadHover, setUploadHover] = useState(false);
 
   const favoriteOver = wordCount(favorite) > MAX_WORDS;
   const experienceOver = wordCount(experience) > MAX_WORDS;
@@ -344,7 +346,9 @@ export function ApplyForm({ onSuccess }: { onSuccess?: () => void }) {
 
       {/* PDF upload — a white box acting as the file picker button */}
       <label
-        className="pointer-events-auto absolute box-border flex cursor-pointer items-center overflow-hidden bg-white px-[0.3em] text-black"
+        onMouseEnter={() => setUploadHover(true)}
+        onMouseLeave={() => setUploadHover(false)}
+        className="pointer-events-auto absolute box-border flex cursor-pointer items-center justify-center overflow-hidden bg-white px-[0.3em] text-center text-black"
         style={{
           left: pctX(UPLOAD_BOX.left),
           top: pctY(UPLOAD_BOX.top),
@@ -355,7 +359,9 @@ export function ApplyForm({ onSuccess }: { onSuccess?: () => void }) {
         }}
       >
         <span className="truncate">
-          {fileName ?? "portfolio upload [optional]"}
+          {uploadHover
+            ? "accepting PDF file only"
+            : (fileName ?? "portfolio upload [optional]")}
         </span>
         <input
           name="portfolio"
