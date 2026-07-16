@@ -146,6 +146,7 @@ changes that you made may not be saved.`,
       left: 556,
       top: 5086,
       width: 555,
+      weight: 300,
       body: `contact us at 818-963-2116
 
 while we are all about human touch, due to high volume we may not able to answer every inquiry.`,
@@ -268,6 +269,40 @@ export function MainScreenOverlay({ regions }: { regions: Region[] }) {
     requestAnimationFrame(() => setSlidIn(true));
   }
 
+  // Warm the HTTP cache for every shape (and the success image) once the browser
+  // is idle after first paint, so a click doesn't wait on the download.
+  //
+  // Deliberately `rel="prefetch"` and NOT `img.decode()`: each shape is a
+  // 4000×11396 artwork, i.e. ~174 MB once expanded to RGBA. Decoding all eight
+  // up front allocated ~1.4 GB of bitmaps — survivable on desktop, but this
+  // component used to mount on mobile too (behind `hidden lg:block`, which stops
+  // painting but not effects) and OOM-killed the tab there. A prefetch stores the
+  // compressed bytes only; the decode happens once, for the shape being shown.
+  useEffect(() => {
+    const files = [
+      ...new Set(Object.values(SHAPE_BY_INDEX).map((c) => c.file)),
+      "submit-succes",
+    ];
+    const links: HTMLLinkElement[] = [];
+    const run = () => {
+      for (const file of files) {
+        const link = document.createElement("link");
+        link.rel = "prefetch";
+        link.as = "image";
+        link.href = `/desktop-info-shapes/${file}.webp`;
+        document.head.append(link);
+        links.push(link);
+      }
+    };
+    const hasRIC = typeof window.requestIdleCallback === "function";
+    const id = hasRIC ? window.requestIdleCallback(run) : window.setTimeout(run, 1200);
+    return () => {
+      if (hasRIC) window.cancelIdleCallback(id as number);
+      else window.clearTimeout(id as number);
+      for (const link of links) link.remove();
+    };
+  }, []);
+
   // Auto-close the success screen after 5 seconds.
   useEffect(() => {
     if (!submitted) return;
@@ -279,13 +314,15 @@ export function MainScreenOverlay({ regions }: { regions: Region[] }) {
     setClosing(true);
   }
 
-  // Full-page Privacy Policy overlay (privacy.png), opened from the hotspot over
+  // Full-page Privacy Policy overlay (privacy.avif), opened from the hotspot over
   // the "Privacy Policy" text at the bottom of the page. Fades in/out.
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [privacyVisible, setPrivacyVisible] = useState(false);
 
   function openPrivacy() {
     setPrivacyOpen(true);
+    // Smoothly return to the top so the document opens from its start.
+    window.scrollTo({ top: 0, behavior: "smooth" });
     requestAnimationFrame(() => setPrivacyVisible(true));
   }
 
@@ -471,12 +508,11 @@ export function MainScreenOverlay({ regions }: { regions: Region[] }) {
       <div
         className="pointer-events-none absolute inset-0 z-30"
         style={{
-          transform: slidIn ? "translate(0, 0)" : offscreen,
+          // Only the opacity (open/close fade) lives on this outer layer; the
+          // slide lives on the inner layer below so the text can stay put.
           opacity: closing ? 0 : isFade && !slidIn ? 0 : 1,
-          // Everything is 0.2s except the slide-in of frames 1/3/7, which eases
-          // in over 1s (transform); fade-in (shape-2/4) and every fade-out on
-          // close animate opacity over 0.2s.
-          transition: "transform 1s ease-out, opacity 0.2s ease-in",
+          transition: "opacity 0.2s ease-in",
+          willChange: "opacity",
         }}
         onTransitionEnd={(e) => {
           if (closing && e.propertyName === "opacity") {
@@ -487,42 +523,41 @@ export function MainScreenOverlay({ regions }: { regions: Region[] }) {
           }
         }}
       >
-        {active.backdrop && (
-          <div
-            className={`absolute inset-0 ${
-              active.backdropColor === "white" ? "bg-white/60" : "bg-black/60"
-            }`}
+        {/* Sliding layer — artwork, form and close arrows move with the slide.
+            The stationary text (rendered after this div) does NOT slide, so a
+            slide-in shape is progressively revealed under it. */}
+        <div
+          className="absolute inset-0"
+          style={{
+            transform: slidIn ? "translate(0, 0)" : offscreen,
+            // Frames 1/3/7 ease in over 1s; fades don't move.
+            transition: "transform 1s ease-out",
+            // Promote to its own compositor layer so the slide stays on the GPU
+            // and doesn't repaint the huge PNG each frame.
+            willChange: "transform",
+          }}
+        >
+          {active.backdrop && (
+            <div
+              className={`absolute inset-0 ${
+                active.backdropColor === "white" ? "bg-white/60" : "bg-black/60"
+              }`}
+            />
+          )}
+          <Image
+            src={`/desktop-info-shapes/${submitted ? "submit-succes" : active.file}.webp`}
+            alt=""
+            width={4000}
+            height={11396}
+            unoptimized
+            priority
+            className="relative block h-auto w-full"
           />
-        )}
-        <Image
-          src={`/desktop-info-shapes/${submitted ? "submit-succes" : active.file}.png`}
-          alt=""
-          width={4000}
-          height={11396}
-          unoptimized
-          priority
-          className="relative block h-auto w-full"
-        />
-        {!submitted && active.text && (
-          <div
-            className="pointer-events-none absolute whitespace-pre-line text-left text-white"
-            style={{
-              left: `${(active.text.left / DESIGN_W) * 100}%`,
-              top: `${(active.text.top / DESIGN_H) * 100}%`,
-              width: `${(active.text.width / DESIGN_W) * 100}%`,
-              fontSize: `${(30 / DESIGN_W) * 100}vw`,
-              lineHeight: `${(40 / DESIGN_W) * 100}vw`,
-              fontWeight: active.text.weight ?? 100,
-            }}
-          >
-            {active.text.body}
-          </div>
-        )}
-        {!submitted && active.form && (
-          <ApplyForm onSuccess={() => setSubmitted(true)} />
-        )}
-        {!submitted &&
-          closeControls.map((ctrl, idx) => (
+          {!submitted && active.form && (
+            <ApplyForm onSuccess={() => setSubmitted(true)} />
+          )}
+          {!submitted &&
+            closeControls.map((ctrl, idx) => (
           <Fragment key={idx}>
             {ctrl.hint && (
               <div
@@ -568,6 +603,31 @@ export function MainScreenOverlay({ regions }: { regions: Region[] }) {
             </button>
           </Fragment>
         ))}
+        </div>
+
+        {/* Stationary text — does NOT slide. It stays put while the dark shape
+            slides in underneath, so the white copy is invisible on the light
+            background until the silhouette is behind it, then reads as visible. */}
+        {!submitted && active.text && (
+          <div
+            className="pointer-events-none absolute whitespace-pre-line text-left text-white"
+            style={{
+              left: `${(active.text.left / DESIGN_W) * 100}%`,
+              top: `${(active.text.top / DESIGN_H) * 100}%`,
+              width: `${(active.text.width / DESIGN_W) * 100}%`,
+              fontSize: `${(30 / DESIGN_W) * 100}vw`,
+              lineHeight: `${(40 / DESIGN_W) * 100}vw`,
+              fontWeight: active.text.weight ?? 100,
+              // Stay hidden while the shape slides in, then reveal near the end
+              // (~last 0.4s of the 1s slide) — so the text only appears once the
+              // dark silhouette has flowed underneath it.
+              opacity: slidIn && !closing ? 1 : 0,
+              transition: "opacity 0.4s ease-in 0.6s",
+            }}
+          >
+            {active.text.body}
+          </div>
+        )}
       </div>
     )}
 
@@ -585,7 +645,7 @@ export function MainScreenOverlay({ regions }: { regions: Region[] }) {
       className="pointer-events-auto absolute z-20 cursor-pointer"
     />
 
-    {/* Full-page Privacy Policy overlay: privacy.png backing shape + the text
+    {/* Full-page Privacy Policy overlay: privacy.avif backing shape + the text
         rendered on top + a close arrow near the bottom (fades in/out). */}
     {privacyOpen && (
       <div
@@ -596,7 +656,7 @@ export function MainScreenOverlay({ regions }: { regions: Region[] }) {
         }}
       >
         <Image
-          src="/desktop-info-shapes/privacy.png"
+          src="/desktop-info-shapes/privacy.avif"
           alt=""
           width={8000}
           height={22792}

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export type MobileRegion = {
   id: string;
@@ -46,10 +46,40 @@ export function MobileScreenOverlay({ regions }: { regions: MobileRegion[] }) {
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [privacyVisible, setPrivacyVisible] = useState(false);
 
+  // Warm the HTTP cache for every tap-target shape once the browser is idle, so
+  // a tap doesn't wait on the download.
+  //
+  // Deliberately `rel="prefetch"` and NOT `img.decode()`: each shape is a
+  // 3125×9625 artwork, i.e. ~115 MB once expanded to RGBA. Decoding all seven up
+  // front allocated ~800 MB of bitmaps and reliably OOM-killed the tab on mobile
+  // Safari/Chrome. A prefetch stores the compressed bytes only; the decode then
+  // happens once, for the single shape actually being shown.
+  useEffect(() => {
+    const files = [...new Set(Object.values(SHAPE_BY_NUMBER))];
+    const links: HTMLLinkElement[] = [];
+    const run = () => {
+      for (const file of files) {
+        const link = document.createElement("link");
+        link.rel = "prefetch";
+        link.as = "image";
+        link.href = `/mobile-info-shapes/${file}.webp`;
+        document.head.append(link);
+        links.push(link);
+      }
+    };
+    const hasRIC = typeof window.requestIdleCallback === "function";
+    const id = hasRIC ? window.requestIdleCallback(run) : window.setTimeout(run, 1200);
+    return () => {
+      if (hasRIC) window.cancelIdleCallback(id as number);
+      else window.clearTimeout(id as number);
+      for (const link of links) link.remove();
+    };
+  }, []);
+
   function openPrivacy() {
     setPrivacyOpen(true);
-    // Show the document from its top regardless of current scroll.
-    window.scrollTo({ top: 0 });
+    // Smoothly return to the top so the document opens from its start.
+    window.scrollTo({ top: 0, behavior: "smooth" });
     requestAnimationFrame(() => setPrivacyVisible(true));
   }
 
@@ -76,7 +106,7 @@ export function MobileScreenOverlay({ regions }: { regions: MobileRegion[] }) {
     <>
       {shape !== null && (
         <Image
-          src={`/mobile-info-shapes/${shape}.png`}
+          src={`/mobile-info-shapes/${shape}.webp`}
           alt=""
           width={3125}
           height={9625}
@@ -146,7 +176,7 @@ export function MobileScreenOverlay({ regions }: { regions: MobileRegion[] }) {
           }}
         >
           <Image
-            src="/mobile-info-shapes/privacy.png"
+            src="/mobile-info-shapes/privacy.webp"
             alt="Privacy Policy"
             width={3125}
             height={40532}
