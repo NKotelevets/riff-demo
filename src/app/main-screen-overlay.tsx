@@ -269,20 +269,29 @@ export function MainScreenOverlay({ regions }: { regions: Region[] }) {
     requestAnimationFrame(() => setSlidIn(true));
   }
 
-  // Warm the HTTP + decoded-image cache for every shape (and the success image)
-  // once the browser is idle after first paint. By the time a region is
-  // clicked the PNG is already fetched AND decoded, so the fade/slide runs on a
-  // ready bitmap instead of stuttering while the image downloads/decodes.
+  // Warm the HTTP cache for every shape (and the success image) once the browser
+  // is idle after first paint, so a click doesn't wait on the download.
+  //
+  // Deliberately `rel="prefetch"` and NOT `img.decode()`: each shape is a
+  // 4000×11396 artwork, i.e. ~174 MB once expanded to RGBA. Decoding all eight
+  // up front allocated ~1.4 GB of bitmaps — survivable on desktop, but this
+  // component used to mount on mobile too (behind `hidden lg:block`, which stops
+  // painting but not effects) and OOM-killed the tab there. A prefetch stores the
+  // compressed bytes only; the decode happens once, for the shape being shown.
   useEffect(() => {
     const files = [
       ...new Set(Object.values(SHAPE_BY_INDEX).map((c) => c.file)),
       "submit-succes",
     ];
+    const links: HTMLLinkElement[] = [];
     const run = () => {
       for (const file of files) {
-        const img = new window.Image();
-        img.src = `/desktop-info-shapes/${file}.webp`;
-        void img.decode?.().catch(() => {});
+        const link = document.createElement("link");
+        link.rel = "prefetch";
+        link.as = "image";
+        link.href = `/desktop-info-shapes/${file}.webp`;
+        document.head.append(link);
+        links.push(link);
       }
     };
     const hasRIC = typeof window.requestIdleCallback === "function";
@@ -290,6 +299,7 @@ export function MainScreenOverlay({ regions }: { regions: Region[] }) {
     return () => {
       if (hasRIC) window.cancelIdleCallback(id as number);
       else window.clearTimeout(id as number);
+      for (const link of links) link.remove();
     };
   }, []);
 
